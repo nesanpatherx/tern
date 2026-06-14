@@ -66,8 +66,20 @@ async function getDashboardData(): Promise<PortcoRow[]> {
   }))
 }
 
+const C = {
+  orange: '#eb5c32',
+  nearBlack: '#1a1a18',
+  charcoal: '#4a4a48',
+  darkGrey: '#999999',
+  lightGrey: '#d9d9d9',
+  offWhite: '#f7f4f0',
+  navy: '#1c2b3a',
+  slateBlue: '#4a6580',
+  paleSlate: '#c8d8e8',
+}
+
 function Dash() {
-  return <span className="text-slate-200">—</span>
+  return <span style={{ color: C.lightGrey }}>—</span>
 }
 
 function Cell({
@@ -80,7 +92,10 @@ function Cell({
   divider?: boolean
 }) {
   return (
-    <td className={`px-3 py-3 text-sm text-right whitespace-nowrap ${divider ? 'border-l border-slate-100' : ''} ${className}`}>
+    <td
+      className={`px-3 py-3 text-right text-xs whitespace-nowrap font-mono ${className}`}
+      style={divider ? { borderLeft: `1px solid ${C.lightGrey}` } : {}}
+    >
       {children}
     </td>
   )
@@ -88,26 +103,47 @@ function Cell({
 
 function ColHead({ children, divider = false }: { children: React.ReactNode; divider?: boolean }) {
   return (
-    <th className={`px-3 py-2 text-right text-[11px] font-medium text-slate-400 uppercase tracking-wide whitespace-nowrap ${divider ? 'border-l border-slate-100' : ''}`}>
+    <th
+      className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap"
+      style={{
+        color: C.darkGrey,
+        borderLeft: divider ? `1px solid ${C.lightGrey}` : undefined,
+      }}
+    >
       {children}
     </th>
   )
 }
 
-function SourceBadge({ label, color }: { label: string; color: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  accent = false,
+}: {
+  label: string
+  value: string | number
+  sub?: string
+  accent?: boolean
+}) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold tracking-wide ${color}`}>
-      {label}
-    </span>
-  )
-}
-
-function StatCard({ label, value, sub, color = 'text-slate-800' }: { label: string; value: string | number; sub?: string; color?: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-100 px-5 py-4 shadow-sm">
-      <div className={`text-2xl font-bold ${color} leading-none`}>{value}</div>
-      <div className="text-xs font-medium text-slate-500 mt-1.5">{label}</div>
-      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
+    <div
+      className="px-5 py-4"
+      style={{
+        background: '#ffffff',
+        border: `1px solid ${C.lightGrey}`,
+      }}
+    >
+      <div
+        className="text-2xl font-bold leading-none"
+        style={{ color: accent ? C.orange : C.nearBlack }}
+      >
+        {value}
+      </div>
+      <div className="text-xs font-semibold uppercase tracking-widest mt-2" style={{ color: C.darkGrey }}>
+        {label}
+      </div>
+      {sub && <div className="text-xs mt-0.5" style={{ color: C.darkGrey }}>{sub}</div>}
     </div>
   )
 }
@@ -124,55 +160,70 @@ export default async function DashboardPage() {
   const totalTraffic = rows.reduce((s, r) => s + (r.sem?.organic_traffic ?? 0), 0)
   const totalPipeline = rows.reduce((s, r) => s + (r.funnel?.pipeline_arr ?? 0), 0)
   const totalMQLs = rows.reduce((s, r) => s + (r.funnel?.mqls ?? 0), 0)
-
   const hasAnyData = rows.some(r => r.sc || r.ga || r.sem || r.funnel)
   const coverage = Math.round(((withSEM + withSC + withGA + withFunnel) / 44) * 100)
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen" style={{ background: C.offWhite }}>
       {/* Header */}
-      <header className="bg-[#0D1B2A] text-white px-6 flex items-center justify-between h-14 shadow-lg sticky top-0 z-10">
+      <header
+        className="px-6 flex items-center justify-between h-14 sticky top-0 z-10"
+        style={{ background: C.nearBlack, borderBottom: `2px solid ${C.orange}` }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center shrink-0">
-            <span className="text-[#0D1B2A] font-bold text-xs">T</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-semibold text-sm">Tern Capital</span>
-            <span className="text-slate-500 text-xs hidden sm:inline">Portfolio Dashboard</span>
-          </div>
+          {/* Wordmark */}
+          <span className="text-base leading-none select-none">
+            <span style={{ color: C.orange, fontWeight: 600 }}>Tern</span>
+            <span style={{ color: '#ffffff', fontWeight: 300 }}>Capital</span>
+          </span>
+          <span
+            className="text-xs hidden sm:inline"
+            style={{ color: C.darkGrey, borderLeft: `1px solid ${C.charcoal}`, paddingLeft: '12px' }}
+          >
+            Portfolio dashboard
+          </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500 hidden sm:inline">{rows.length} companies</span>
+        <div className="flex items-center gap-4">
+          <span className="text-xs hidden sm:inline" style={{ color: C.darkGrey }}>
+            {rows.length} companies
+          </span>
           <Link
             href="/upload"
-            className="bg-white/10 hover:bg-white/20 text-white px-4 py-1.5 rounded-lg text-xs font-semibold border border-white/10 transition-colors"
+            className="px-4 py-1.5 text-xs font-semibold transition-colors"
+            style={{
+              background: C.orange,
+              color: '#ffffff',
+            }}
           >
             Upload data
           </Link>
         </div>
       </header>
 
-      <main className="px-4 sm:px-6 py-5 max-w-[1600px] mx-auto">
+      <main className="px-4 sm:px-6 py-6 max-w-[1600px] mx-auto">
         {!isConfigured && (
-          <div className="mb-5 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-800">
+          <div
+            className="mb-5 px-5 py-4 text-sm"
+            style={{ background: '#fff8f5', border: `1px solid ${C.orange}`, color: C.charcoal }}
+          >
             <strong>Setup required:</strong> Add Supabase credentials to environment variables, then run both migrations.
           </div>
         )}
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px mb-6" style={{ background: C.lightGrey }}>
           <StatCard label="Portfolio companies" value={rows.length} />
           <StatCard
             label="Organic traffic"
             value={totalTraffic > 0 ? fmtNum(totalTraffic) : '—'}
             sub="across all portcos"
-            color="text-emerald-700"
+            accent
           />
           <StatCard
             label="Total pipeline"
             value={totalPipeline > 0 ? fmtCurrency(totalPipeline) : '—'}
             sub="latest upload"
-            color="text-purple-700"
+            accent
           />
           <StatCard
             label="Total MQLs"
@@ -182,66 +233,80 @@ export default async function DashboardPage() {
           <StatCard
             label="Data coverage"
             value={`${coverage}%`}
-            sub={`${withSEM + withSC + withGA + withFunnel} / 44 sources filled`}
-            color={coverage > 60 ? 'text-emerald-700' : coverage > 30 ? 'text-amber-600' : 'text-red-500'}
+            sub={`${withSEM + withSC + withGA + withFunnel} / 44 sources`}
+            accent={coverage > 0}
           />
-          <div className="bg-white rounded-xl border border-slate-100 px-5 py-4 shadow-sm text-xs space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-slate-400">SEMrush</span>
-              <span className="font-semibold text-slate-700">{withSEM} / {rows.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Search Console</span>
-              <span className="font-semibold text-slate-700">{withSC} / {rows.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">GA4</span>
-              <span className="font-semibold text-slate-700">{withGA} / {rows.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Funnel</span>
-              <span className="font-semibold text-slate-700">{withFunnel} / {rows.length}</span>
-            </div>
+          <div className="px-5 py-4 text-xs space-y-2" style={{ background: '#ffffff', border: `0px solid ${C.lightGrey}` }}>
+            <div className="font-semibold uppercase tracking-widest text-[10px] mb-3" style={{ color: C.darkGrey }}>Source coverage</div>
+            {[
+              { label: 'SEMrush', count: withSEM },
+              { label: 'Search Console', count: withSC },
+              { label: 'GA4', count: withGA },
+              { label: 'Funnel', count: withFunnel },
+            ].map(s => (
+              <div key={s.label} className="flex justify-between items-center">
+                <span style={{ color: C.darkGrey }}>{s.label}</span>
+                <span className="font-semibold" style={{ color: s.count > 0 ? C.nearBlack : C.lightGrey }}>
+                  {s.count} / {rows.length}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-700">All companies</span>
+        <div style={{ background: '#ffffff', border: `1px solid ${C.lightGrey}` }}>
+          {/* Table header bar */}
+          <div
+            className="px-5 py-3 flex items-center justify-between"
+            style={{ borderBottom: `1px solid ${C.lightGrey}` }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold" style={{ color: C.nearBlack }}>All companies</span>
               {hasAnyData && (
-                <span className="text-xs text-slate-400">· latest upload per source</span>
+                <span className="text-xs" style={{ color: C.darkGrey }}>· latest upload per source</span>
               )}
             </div>
-            <div className="flex items-center gap-4 text-xs text-slate-400">
-              <span><span className="text-emerald-500 font-bold">●</span> Good</span>
-              <span><span className="text-amber-500 font-bold">●</span> Mid</span>
-              <span><span className="text-red-400 font-bold">●</span> Weak</span>
+            <div className="flex items-center gap-4 text-xs" style={{ color: C.darkGrey }}>
+              <span><span style={{ color: '#22c55e' }}>●</span> Good</span>
+              <span><span style={{ color: '#f59e0b' }}>●</span> Mid</span>
+              <span><span style={{ color: '#ef4444' }}>●</span> Weak</span>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-slate-100">
-                  <th rowSpan={2} className="text-left px-4 py-2 text-[11px] font-medium text-slate-400 uppercase tracking-wide bg-slate-50 border-r border-slate-100 min-w-[190px] sticky left-0 z-10">
+                {/* Source group row */}
+                <tr style={{ borderBottom: `1px solid ${C.lightGrey}` }}>
+                  <th
+                    rowSpan={2}
+                    className="text-left px-4 py-2 text-[10px] font-semibold uppercase tracking-widest sticky left-0 z-10 min-w-[190px]"
+                    style={{ background: C.offWhite, color: C.darkGrey, borderRight: `1px solid ${C.lightGrey}` }}
+                  >
                     Company
                   </th>
-                  <th colSpan={4} className="border-l border-slate-100 py-2 text-center bg-emerald-50/60">
-                    <SourceBadge label="SEMrush" color="text-emerald-700" />
-                  </th>
-                  <th colSpan={4} className="border-l border-slate-100 py-2 text-center bg-blue-50/60">
-                    <SourceBadge label="Search Console" color="text-blue-700" />
-                  </th>
-                  <th colSpan={5} className="border-l border-slate-100 py-2 text-center bg-orange-50/60">
-                    <SourceBadge label="Google Analytics" color="text-orange-700" />
-                  </th>
-                  <th colSpan={4} className="border-l border-slate-100 py-2 text-center bg-purple-50/60">
-                    <SourceBadge label="Sales Funnel" color="text-purple-700" />
-                  </th>
+                  {[
+                    { label: 'SEMrush', cols: 4 },
+                    { label: 'Search Console', cols: 4 },
+                    { label: 'Google Analytics', cols: 5 },
+                    { label: 'Sales Funnel', cols: 4 },
+                  ].map(g => (
+                    <th
+                      key={g.label}
+                      colSpan={g.cols}
+                      className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest"
+                      style={{
+                        borderLeft: `1px solid ${C.lightGrey}`,
+                        background: C.offWhite,
+                        color: C.charcoal,
+                      }}
+                    >
+                      {g.label}
+                    </th>
+                  ))}
                 </tr>
-                <tr className="border-b-2 border-slate-100 bg-slate-50/50">
+                <tr style={{ borderBottom: `2px solid ${C.nearBlack}`, background: C.offWhite }}>
                   <ColHead divider>Auth</ColHead>
                   <ColHead>Traffic</ColHead>
                   <ColHead>Keywords</ColHead>
@@ -265,14 +330,14 @@ export default async function DashboardPage() {
               <tbody>
                 {rows.length === 0 ? (
                   Array.from({ length: 11 }, (_, i) => (
-                    <tr key={i} className="border-b border-slate-50 animate-pulse">
-                      <td className="px-4 py-4 border-r border-slate-100 bg-white sticky left-0">
-                        <div className="h-4 bg-slate-100 rounded w-28 mb-1.5" />
-                        <div className="h-3 bg-slate-50 rounded w-20" />
+                    <tr key={i} className="animate-pulse" style={{ borderBottom: `1px solid ${C.offWhite}` }}>
+                      <td className="px-4 py-4 sticky left-0 bg-white" style={{ borderRight: `1px solid ${C.lightGrey}` }}>
+                        <div className="h-4 rounded w-28 mb-1.5" style={{ background: C.offWhite }} />
+                        <div className="h-3 rounded w-20" style={{ background: C.offWhite }} />
                       </td>
                       {Array.from({ length: 17 }, (_, j) => (
                         <td key={j} className="px-3 py-4">
-                          <div className="h-3 bg-slate-100 rounded w-10 ml-auto" />
+                          <div className="h-3 rounded w-10 ml-auto" style={{ background: C.offWhite }} />
                         </td>
                       ))}
                     </tr>
@@ -284,34 +349,50 @@ export default async function DashboardPage() {
                     const hasData = sc || ga || sem || funnel
 
                     return (
-                      <tr key={portco.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors group">
-                        <td className="px-4 py-3 border-r border-slate-100 bg-white group-hover:bg-slate-50/70 sticky left-0 transition-colors">
+                      <tr
+                        key={portco.id}
+                        className="group transition-colors"
+                        style={{ borderBottom: `1px solid ${C.offWhite}` }}
+                        onMouseEnter={undefined}
+                      >
+                        {/* Company cell */}
+                        <td
+                          className="px-4 py-3 sticky left-0 bg-white group-hover:bg-[#f7f4f0] transition-colors"
+                          style={{ borderRight: `1px solid ${C.lightGrey}` }}
+                        >
                           <div className="flex items-center gap-2.5">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={`https://www.google.com/s2/favicons?sz=32&domain=${portco.domain}`}
                               alt=""
-                              className="w-5 h-5 rounded shrink-0 opacity-75"
+                              className="w-4 h-4 shrink-0"
+                              style={{ opacity: 0.7 }}
                             />
                             <div>
-                              <div className="font-semibold text-slate-800 text-sm leading-tight">{portco.name}</div>
+                              <div className="font-semibold text-sm leading-tight" style={{ color: C.nearBlack }}>
+                                {portco.name}
+                              </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <a
                                   href={`https://${portco.domain}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] text-slate-400 hover:text-slate-600 hover:underline"
+                                  className="text-[11px] hover:underline"
+                                  style={{ color: C.darkGrey }}
                                 >
                                   {portco.domain}
                                 </a>
                                 {lastUpdated && (
-                                  <span className="text-[11px] text-slate-300">· {fmtDate(lastUpdated)}</span>
+                                  <span className="text-[11px]" style={{ color: C.lightGrey }}>
+                                    · {fmtDate(lastUpdated)}
+                                  </span>
                                 )}
                               </div>
                               {!hasData && (
                                 <Link
                                   href={`/upload?company=${portco.id}`}
-                                  className="text-[11px] text-blue-400 hover:text-blue-600 mt-0.5 inline-block"
+                                  className="text-[11px] hover:underline mt-0.5 inline-block"
+                                  style={{ color: C.orange }}
                                 >
                                   + Add data
                                 </Link>
@@ -324,28 +405,28 @@ export default async function DashboardPage() {
                         <Cell divider className={authorityColor(sem?.authority_score)}>
                           {sem ? (sem.authority_score ?? <Dash />) : <Dash />}
                         </Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{sem ? fmtNum(sem.organic_traffic) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{sem ? fmtNum(sem.organic_keywords) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{sem ? fmtNum(sem.backlinks) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sem ? fmtNum(sem.organic_traffic) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sem ? fmtNum(sem.organic_keywords) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sem ? fmtNum(sem.backlinks) : <Dash />}</Cell>
 
                         {/* Search Console */}
-                        <Cell divider className="text-slate-600 font-mono text-xs">{sc ? fmtNum(sc.clicks) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{sc ? fmtNum(sc.impressions) : <Dash />}</Cell>
+                        <Cell divider style={{ color: C.charcoal }}>{sc ? fmtNum(sc.clicks) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sc ? fmtNum(sc.impressions) : <Dash />}</Cell>
                         <Cell className={ctrColor(sc?.ctr)}>{sc ? fmtPct(sc.ctr) : <Dash />}</Cell>
                         <Cell className={positionColor(sc?.avg_position)}>{sc ? fmtPos(sc.avg_position) : <Dash />}</Cell>
 
                         {/* GA4 */}
-                        <Cell divider className="text-slate-600 font-mono text-xs">{ga ? fmtNum(ga.users) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{ga ? fmtNum(ga.sessions) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{ga ? fmtNum(ga.visits) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{ga ? fmtDuration(ga.avg_session_duration) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{ga ? fmtPct(ga.bounce_rate) : <Dash />}</Cell>
+                        <Cell divider style={{ color: C.charcoal }}>{ga ? fmtNum(ga.users) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? fmtNum(ga.sessions) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? fmtNum(ga.visits) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? fmtDuration(ga.avg_session_duration) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? fmtPct(ga.bounce_rate) : <Dash />}</Cell>
 
                         {/* Funnel */}
-                        <Cell divider className="text-slate-600 font-mono text-xs">{funnel ? fmtNum(funnel.mqls) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{funnel ? fmtNum(funnel.sqls) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{funnel ? fmtCurrency(funnel.pipeline_arr) : <Dash />}</Cell>
-                        <Cell className="text-slate-600 font-mono text-xs">{funnel ? fmtCurrency(funnel.avg_deal_value) : <Dash />}</Cell>
+                        <Cell divider style={{ color: C.charcoal }}>{funnel ? fmtNum(funnel.mqls) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{funnel ? fmtNum(funnel.sqls) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{funnel ? fmtCurrency(funnel.pipeline_arr) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{funnel ? fmtCurrency(funnel.avg_deal_value) : <Dash />}</Cell>
                       </tr>
                     )
                   })
@@ -355,18 +436,22 @@ export default async function DashboardPage() {
           </div>
 
           {isConfigured && rows.length > 0 && !hasAnyData && (
-            <div className="px-5 py-10 text-center border-t border-slate-100">
-              <div className="text-slate-400 text-sm mb-3">No data uploaded yet. Start by uploading a CSV export.</div>
+            <div className="px-5 py-10 text-center" style={{ borderTop: `1px solid ${C.lightGrey}` }}>
+              <div className="text-sm mb-4" style={{ color: C.darkGrey }}>No data uploaded yet. Start by uploading a CSV export.</div>
               <Link
                 href="/upload"
-                className="inline-flex items-center px-4 py-2 bg-[#0D1B2A] text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white transition-colors"
+                style={{ background: C.nearBlack }}
               >
                 Upload first dataset
               </Link>
             </div>
           )}
 
-          <div className="px-5 py-2.5 border-t border-slate-50 bg-slate-50/60 flex items-center justify-between text-xs text-slate-400">
+          <div
+            className="px-5 py-2.5 flex items-center justify-between text-xs"
+            style={{ borderTop: `1px solid ${C.lightGrey}`, color: C.darkGrey, background: C.offWhite }}
+          >
             <span>Latest upload per company per source · {rows.length} portfolio companies</span>
             <span className="hidden sm:inline">Data refreshes on each upload</span>
           </div>
