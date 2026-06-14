@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import SemrushRefreshButton from '@/components/SemrushRefreshButton'
+import GA4RefreshButton from '@/components/GA4RefreshButton'
 import {
   supabase,
   type PortcoDB,
@@ -191,6 +192,7 @@ export default async function DashboardPage() {
             {rows.length} companies
           </span>
           <SemrushRefreshButton />
+          <GA4RefreshButton />
           <Link
             href="/upload"
             className="px-4 py-1.5 text-xs font-semibold transition-colors"
