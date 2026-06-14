@@ -87,15 +87,17 @@ function Cell({
   children,
   className = '',
   divider = false,
+  style,
 }: {
   children: React.ReactNode
   className?: string
   divider?: boolean
+  style?: React.CSSProperties
 }) {
   return (
     <td
       className={`px-3 py-3 text-right text-xs whitespace-nowrap font-mono ${className}`}
-      style={divider ? { borderLeft: `1px solid ${C.lightGrey}` } : {}}
+      style={{ ...(divider ? { borderLeft: `1px solid ${C.lightGrey}` } : {}), ...style }}
     >
       {children}
     </td>
