@@ -2,6 +2,8 @@ import Papa from 'papaparse'
 
 export type ParseError = { error: string }
 
+export type GSCRow = { label: string; clicks: number; impressions: number; ctr: number; position: number }
+
 export type SearchConsoleResult = {
   period_start: string | null
   period_end: string | null
@@ -10,6 +12,24 @@ export type SearchConsoleResult = {
   ctr: number
   avg_position: number
   row_count: number
+  top_queries?: GSCRow[]
+  top_pages?: GSCRow[]
+  top_countries?: GSCRow[]
+  top_devices?: GSCRow[]
+}
+
+export type GSCFileType = 'date' | 'queries' | 'pages' | 'countries' | 'devices' | 'appearance' | 'unknown'
+
+export function detectGSCFileType(filename: string, text: string): GSCFileType {
+  const fn = filename.toLowerCase()
+  const first = text.slice(0, 1000).toLowerCase()
+  if (fn.includes('quer') || first.includes('top queries') || first.includes('query\t') || first.includes('query,')) return 'queries'
+  if (fn.includes('page') || first.includes('top pages') || first.includes('landing page')) return 'pages'
+  if (fn.includes('countr') || first.includes('country\t') || first.includes('country,')) return 'countries'
+  if (fn.includes('device') || first.includes('device\t') || first.includes('device,')) return 'devices'
+  if (fn.includes('appearance') || first.includes('search type') || first.includes('search appearance')) return 'appearance'
+  if (fn.includes('date') || fn.includes('chart') || fn.includes('performance') || first.includes('date\t') || first.includes('date,')) return 'date'
+  return 'unknown'
 }
 
 export type AnalyticsResult = {
@@ -93,7 +113,24 @@ function findHeaderLine(lines: string[]): number {
 
 // ── Search Console ────────────────────────────────────────────────────────────
 
-export function parseSearchConsoleCSV(text: string): SearchConsoleResult | ParseError {
+function parseGSCRows(data: Record<string, string>[], labelKey: string): GSCRow[] {
+  return data.slice(0, 20).map(r => {
+    const clicksKey = findCol(r, 'clicks')
+    const impKey = findCol(r, 'impressions')
+    const ctrKey = findCol(r, 'ctr')
+    const posKey = findCol(r, 'position')
+    return {
+      label: r[labelKey] ?? '',
+      clicks: clicksKey ? toNum(r[clicksKey]) : 0,
+      impressions: impKey ? toNum(r[impKey]) : 0,
+      ctr: ctrKey ? toPct(r[ctrKey]) : 0,
+      position: posKey ? toNum(r[posKey]) : 0,
+    }
+  }).filter(r => r.label)
+}
+
+export function parseSearchConsoleCSV(text: string, filename = ''): SearchConsoleResult | ParseError {
+  const fileType = detectGSCFileType(filename, text)
   const lines = stripBom(text).split('\n').filter(l => l.trim())
   const startIdx = findHeaderLine(lines)
   const csv = lines.slice(startIdx).join('\n')
@@ -111,12 +148,47 @@ export function parseSearchConsoleCSV(text: string): SearchConsoleResult | Parse
   const impKey = findCol(row0, 'impressions')
   const ctrKey = findCol(row0, 'ctr')
   const posKey = findCol(row0, 'position')
-  const dateKey = findCol(row0, 'date')
 
   if (!clicksKey || !impKey) {
-    return { error: 'Could not find Clicks / Impressions columns. Export via: Performance → Export → Download CSV.' }
+    return { error: 'Could not find Clicks / Impressions columns.' }
   }
 
+  // For dimension files (queries, pages, countries, devices) — store as top rows
+  if (fileType === 'queries') {
+    const labelKey = findCol(row0, 'query', 'top queries') ?? Object.keys(row0)[0]
+    return {
+      period_start: null, period_end: null,
+      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
+      top_queries: parseGSCRows(data, labelKey),
+    }
+  }
+  if (fileType === 'pages') {
+    const labelKey = findCol(row0, 'page', 'top pages', 'landing page') ?? Object.keys(row0)[0]
+    return {
+      period_start: null, period_end: null,
+      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
+      top_pages: parseGSCRows(data, labelKey),
+    }
+  }
+  if (fileType === 'countries') {
+    const labelKey = findCol(row0, 'country') ?? Object.keys(row0)[0]
+    return {
+      period_start: null, period_end: null,
+      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
+      top_countries: parseGSCRows(data, labelKey),
+    }
+  }
+  if (fileType === 'devices') {
+    const labelKey = findCol(row0, 'device') ?? Object.keys(row0)[0]
+    return {
+      period_start: null, period_end: null,
+      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
+      top_devices: parseGSCRows(data, labelKey),
+    }
+  }
+
+  // Date/performance file — aggregate totals
+  const dateKey = findCol(row0, 'date')
   let totalClicks = 0, totalImp = 0, sumCtr = 0, sumPos = 0
   const dates: string[] = []
 

@@ -67,8 +67,8 @@ function detectPortco(filename: string, portcos: Portco[]): string {
   return portcos[0]?.id ?? ''
 }
 
-function parseFile(text: string, source: Source): ParseResult {
-  if (source === 'gsc') return parseSearchConsoleCSV(text)
+function parseFile(text: string, source: Source, filename = ''): ParseResult {
+  if (source === 'gsc') return parseSearchConsoleCSV(text, filename)
   if (source === 'ga') return parseAnalyticsCSV(text)
   if (source === 'semrush') return parseSemrushCSV(text)
   return parseFunnelCSV(text)
@@ -147,6 +147,11 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
       const reader = new FileReader()
       reader.onload = e => {
         const text = e.target?.result as string
+        // Skip metadata/filter files from GSC exports
+        if (entry.file.name.toLowerCase() === 'filters.csv' || entry.file.name.toLowerCase().startsWith('filter')) {
+          setEntries(prev => prev.filter(en => en.id !== entry.id))
+          return
+        }
         const source = detectSource(text)
         if (!source) {
           setEntries(prev => prev.map(en => en.id === entry.id
@@ -155,7 +160,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
           ))
           return
         }
-        const parsed = parseFile(text, source)
+        const parsed = parseFile(text, source, entry.file.name)
         setEntries(prev => prev.map(en => en.id === entry.id
           ? { ...en, source, parsed, status: isError(parsed) ? 'error' : 'ready', errorMsg: isError(parsed) ? parsed.error : '' }
           : en
@@ -188,21 +193,65 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
     if (!ready.length) return
     setSaving(true)
 
+    // Group GSC files by portco so multiple files merge into one row
+    const gscByPortco = new Map<string, FileEntry[]>()
+    const nonGsc: FileEntry[] = []
     for (const entry of ready) {
       if (!entry.parsed || isError(entry.parsed) || !entry.source) continue
-      updateEntry(entry.id, { status: 'saving' })
+      if (entry.source === 'gsc') {
+        const group = gscByPortco.get(entry.portcoId) ?? []
+        group.push(entry)
+        gscByPortco.set(entry.portcoId, group)
+      } else {
+        nonGsc.push(entry)
+      }
+    }
 
+    // Save merged GSC rows
+    for (const [portcoId, gscEntries] of gscByPortco.entries()) {
+      gscEntries.forEach(e => updateEntry(e.id, { status: 'saving' }))
+      // Merge all parsed results for this portco
+      const merged: SearchConsoleResult = {
+        period_start: null, period_end: null,
+        clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: 0,
+      }
+      for (const entry of gscEntries) {
+        const d = entry.parsed as SearchConsoleResult
+        merged.clicks += d.clicks
+        merged.impressions += d.impressions
+        merged.row_count += d.row_count
+        if (d.top_queries) merged.top_queries = d.top_queries
+        if (d.top_pages) merged.top_pages = d.top_pages
+        if (d.top_countries) merged.top_countries = d.top_countries
+        if (d.top_devices) merged.top_devices = d.top_devices
+        if (!merged.period_start && d.period_start) merged.period_start = d.period_start
+        if (!merged.period_end && d.period_end) merged.period_end = d.period_end
+        if (d.ctr) merged.ctr = d.ctr
+        if (d.avg_position) merged.avg_position = d.avg_position
+      }
+      const { error } = await sb.from('search_console_uploads').insert({
+        portco_id: portcoId,
+        period_start: merged.period_start, period_end: merged.period_end,
+        clicks: merged.clicks, impressions: merged.impressions,
+        ctr: merged.ctr, avg_position: merged.avg_position,
+        top_queries: merged.top_queries ?? null,
+        top_pages: merged.top_pages ?? null,
+        top_countries: merged.top_countries ?? null,
+        top_devices: merged.top_devices ?? null,
+      })
+      gscEntries.forEach(e => updateEntry(e.id, error
+        ? { status: 'error', errorMsg: error.message }
+        : { status: 'saved' }
+      ))
+    }
+
+    // Save non-GSC entries
+    for (const entry of nonGsc) {
+      updateEntry(entry.id, { status: 'saving' })
       let error = null
       const p = entry.parsed
 
-      if (entry.source === 'gsc') {
-        const d = p as SearchConsoleResult
-        const { error: e } = await sb.from('search_console_uploads').insert({
-          portco_id: entry.portcoId, period_start: d.period_start, period_end: d.period_end,
-          clicks: d.clicks, impressions: d.impressions, ctr: d.ctr, avg_position: d.avg_position,
-        })
-        error = e
-      } else if (entry.source === 'ga') {
+      if (entry.source === 'ga') {
         const d = p as AnalyticsResult
         const { error: e } = await sb.from('analytics_uploads').insert({
           portco_id: entry.portcoId, period_start: d.period_start, period_end: d.period_end,
