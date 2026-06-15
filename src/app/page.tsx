@@ -194,12 +194,16 @@ export default async function DashboardPage() {
           <SemrushRefreshButton />
           <GA4RefreshButton />
           <Link
+            href="/bulk-upload"
+            className="px-4 py-1.5 text-xs font-semibold transition-colors"
+            style={{ background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            Bulk upload
+          </Link>
+          <Link
             href="/upload"
             className="px-4 py-1.5 text-xs font-semibold transition-colors"
-            style={{
-              background: C.orange,
-              color: '#ffffff',
-            }}
+            style={{ background: C.orange, color: '#ffffff' }}
           >
             Upload data
           </Link>
