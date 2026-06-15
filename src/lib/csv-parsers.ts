@@ -153,38 +153,37 @@ export function parseSearchConsoleCSV(text: string, filename = ''): SearchConsol
     return { error: 'Could not find Clicks / Impressions columns.' }
   }
 
-  // For dimension files (queries, pages, countries, devices) — store as top rows
-  if (fileType === 'queries') {
-    const labelKey = findCol(row0, 'query', 'top queries') ?? Object.keys(row0)[0]
-    return {
-      period_start: null, period_end: null,
-      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
-      top_queries: parseGSCRows(data, labelKey),
+  // For dimension files — sum clicks/impressions from all rows, store top rows as JSONB
+  if (fileType === 'queries' || fileType === 'pages' || fileType === 'countries' || fileType === 'devices') {
+    let totalClicks = 0, totalImp = 0, sumCtr = 0, sumPos = 0
+    for (const r of data) {
+      totalClicks += clicksKey ? toNum(r[clicksKey]) : 0
+      totalImp += impKey ? toNum(r[impKey]) : 0
+      if (ctrKey) sumCtr += toPct(r[ctrKey])
+      if (posKey) sumPos += toNum(r[posKey])
     }
-  }
-  if (fileType === 'pages') {
-    const labelKey = findCol(row0, 'page', 'top pages', 'landing page') ?? Object.keys(row0)[0]
-    return {
+    const n = data.length
+    const base: SearchConsoleResult = {
       period_start: null, period_end: null,
-      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
-      top_pages: parseGSCRows(data, labelKey),
+      clicks: totalClicks, impressions: totalImp,
+      ctr: n > 0 ? sumCtr / n : 0,
+      avg_position: n > 0 ? sumPos / n : 0,
+      row_count: n,
     }
-  }
-  if (fileType === 'countries') {
-    const labelKey = findCol(row0, 'country') ?? Object.keys(row0)[0]
-    return {
-      period_start: null, period_end: null,
-      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
-      top_countries: parseGSCRows(data, labelKey),
+    if (fileType === 'queries') {
+      const labelKey = findCol(row0, 'query', 'top queries') ?? Object.keys(row0)[0]
+      base.top_queries = parseGSCRows(data, labelKey)
+    } else if (fileType === 'pages') {
+      const labelKey = findCol(row0, 'page', 'top pages', 'landing page') ?? Object.keys(row0)[0]
+      base.top_pages = parseGSCRows(data, labelKey)
+    } else if (fileType === 'countries') {
+      const labelKey = findCol(row0, 'country') ?? Object.keys(row0)[0]
+      base.top_countries = parseGSCRows(data, labelKey)
+    } else {
+      const labelKey = findCol(row0, 'device') ?? Object.keys(row0)[0]
+      base.top_devices = parseGSCRows(data, labelKey)
     }
-  }
-  if (fileType === 'devices') {
-    const labelKey = findCol(row0, 'device') ?? Object.keys(row0)[0]
-    return {
-      period_start: null, period_end: null,
-      clicks: 0, impressions: 0, ctr: 0, avg_position: 0, row_count: data.length,
-      top_devices: parseGSCRows(data, labelKey),
-    }
+    return base
   }
 
   // Date/performance file — aggregate totals

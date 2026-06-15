@@ -148,7 +148,8 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
       reader.onload = e => {
         const text = e.target?.result as string
         // Skip metadata/filter files from GSC exports
-        if (entry.file.name.toLowerCase() === 'filters.csv' || entry.file.name.toLowerCase().startsWith('filter')) {
+        const lowerName = entry.file.name.toLowerCase()
+        if (lowerName === 'filters.csv' || lowerName.startsWith('filter')) {
           setEntries(prev => prev.filter(en => en.id !== entry.id))
           return
         }
