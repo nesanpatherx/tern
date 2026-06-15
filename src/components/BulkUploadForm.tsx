@@ -209,7 +209,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
     }
 
     // Save merged GSC rows
-    for (const [portcoId, gscEntries] of gscByPortco.entries()) {
+    for (const [portcoId, gscEntries] of Array.from(gscByPortco.entries())) {
       gscEntries.forEach(e => updateEntry(e.id, { status: 'saving' }))
       // Merge all parsed results for this portco
       const merged: SearchConsoleResult = {

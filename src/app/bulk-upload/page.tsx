@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import BulkUploadForm from '@/components/BulkUploadForm'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
