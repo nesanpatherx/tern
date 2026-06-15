@@ -36,7 +36,7 @@ async function getDashboardData(): Promise<PortcoRow[]> {
 
   const [portcosRes, scRes, gaRes, semRes, funnelRes] = await Promise.all([
     supabase.from('portcos').select('*').order('name'),
-    supabase.from('search_console_uploads').select('*').order('uploaded_at', { ascending: false }),
+    supabase.from('search_console_uploads').select('id,portco_id,period_start,period_end,clicks,impressions,ctr,avg_position,uploaded_at').order('uploaded_at', { ascending: false }),
     supabase.from('analytics_uploads').select('*').order('uploaded_at', { ascending: false }),
     supabase.from('semrush_uploads').select('*').order('uploaded_at', { ascending: false }),
     supabase.from('funnel_uploads').select('*').order('uploaded_at', { ascending: false }),
