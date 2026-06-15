@@ -252,6 +252,8 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
         if (d.ctr) merged.ctr = d.ctr
         if (d.avg_position) merged.avg_position = d.avg_position
       }
+      // Delete existing row for this portco before inserting fresh data
+      await sb.from('search_console_uploads').delete().eq('portco_id', portcoId)
       const { error } = await sb.from('search_console_uploads').insert({
         portco_id: portcoId,
         period_start: merged.period_start, period_end: merged.period_end,
@@ -276,6 +278,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
 
       if (entry.source === 'ga') {
         const d = p as AnalyticsResult
+        await sb.from('analytics_uploads').delete().eq('portco_id', entry.portcoId)
         const { error: e } = await sb.from('analytics_uploads').insert({
           portco_id: entry.portcoId, period_start: d.period_start, period_end: d.period_end,
           sessions: d.sessions, users: d.users, new_users: d.new_users, visits: d.visits,
@@ -284,6 +287,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
         error = e
       } else if (entry.source === 'semrush') {
         const d = p as SemrushResult
+        await sb.from('semrush_uploads').delete().eq('portco_id', entry.portcoId)
         const { error: e } = await sb.from('semrush_uploads').insert({
           portco_id: entry.portcoId, report_date: d.report_date, authority_score: d.authority_score,
           organic_traffic: d.organic_traffic, organic_keywords: d.organic_keywords,
@@ -292,6 +296,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
         error = e
       } else {
         const d = p as FunnelResult
+        await sb.from('funnel_uploads').delete().eq('portco_id', entry.portcoId)
         const { error: e } = await sb.from('funnel_uploads').insert({
           portco_id: entry.portcoId, period_start: d.period_start, period_end: d.period_end,
           mqls: d.mqls, sqls: d.sqls, pipeline_arr: d.pipeline_arr, avg_deal_value: d.avg_deal_value,
