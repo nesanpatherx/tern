@@ -130,6 +130,12 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [dragging, setDragging] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [globalPortcoId, setGlobalPortcoId] = useState('')
+
+  const applyGlobalPortco = (id: string) => {
+    setGlobalPortcoId(id)
+    if (id) setEntries(prev => prev.map(e => e.status !== 'saved' ? { ...e, portcoId: id } : e))
+  }
 
   const sb = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -162,7 +168,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
           setEntries(prev => prev.filter(en => en.id !== entry.id))
           return
         }
-        const portcoId = detectPortco(entry.file.name, portcos, text)
+        const portcoId = globalPortcoId || detectPortco(entry.file.name, portcos, text)
         const source = detectSource(text)
         if (!source) {
           setEntries(prev => prev.map(en => en.id === entry.id
@@ -307,6 +313,23 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
 
   return (
     <div>
+      {/* Global company selector */}
+      <div className="flex items-center gap-3 mb-4 px-4 py-3" style={{ background: '#ffffff', border: '1px solid #d9d9d9' }}>
+        <span className="text-sm font-semibold" style={{ color: '#1a1a18' }}>Set all files to company:</span>
+        <select
+          value={globalPortcoId}
+          onChange={e => applyGlobalPortco(e.target.value)}
+          className="text-sm px-3 py-1.5 border flex-1 max-w-xs"
+          style={{ borderColor: '#d9d9d9', color: '#1a1a18', background: '#f7f4f0' }}
+        >
+          <option value="">— auto-detect per file —</option>
+          {portcos.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <span className="text-xs" style={{ color: '#999' }}>Use this when uploading files for a single company</span>
+      </div>
+
       {/* Drop zone */}
       <div
         onDragOver={e => { e.preventDefault(); setDragging(true) }}
