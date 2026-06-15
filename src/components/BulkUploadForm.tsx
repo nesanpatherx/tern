@@ -57,7 +57,14 @@ function detectSource(text: string): Source | null {
   return null
 }
 
-function detectPortco(filename: string, portcos: Portco[]): string {
+function detectPortco(filename: string, portcos: Portco[], content = ''): string {
+  // Try to match domain from file content (GSC exports include property URL in header)
+  const header = content.slice(0, 2000).toLowerCase()
+  for (const p of portcos) {
+    const domain = p.domain.toLowerCase().replace(/^www\./, '')
+    if (header.includes(domain)) return p.id
+  }
+  // Fall back to filename matching
   const lower = filename.toLowerCase().replace(/[^a-z0-9]/g, '')
   for (const p of portcos) {
     const nameLower = p.name.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -135,7 +142,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
       id: Math.random().toString(36).slice(2),
       file,
       source: null,
-      portcoId: detectPortco(file.name, portcos),
+      portcoId: '',
       parsed: null,
       status: 'parsing',
       errorMsg: '',
@@ -153,6 +160,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
           setEntries(prev => prev.filter(en => en.id !== entry.id))
           return
         }
+        const portcoId = detectPortco(entry.file.name, portcos, text)
         const source = detectSource(text)
         if (!source) {
           setEntries(prev => prev.map(en => en.id === entry.id
@@ -163,7 +171,7 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
         }
         const parsed = parseFile(text, source, entry.file.name)
         setEntries(prev => prev.map(en => en.id === entry.id
-          ? { ...en, source, parsed, status: isError(parsed) ? 'error' : 'ready', errorMsg: isError(parsed) ? parsed.error : '' }
+          ? { ...en, source, portcoId, parsed, status: isError(parsed) ? 'error' : 'ready', errorMsg: isError(parsed) ? parsed.error : '' }
           : en
         ))
       }
