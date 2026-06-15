@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import SemrushRefreshButton from '@/components/SemrushRefreshButton'
 import GA4RefreshButton from '@/components/GA4RefreshButton'
