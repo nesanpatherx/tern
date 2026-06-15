@@ -58,20 +58,22 @@ function detectSource(text: string): Source | null {
 }
 
 function detectPortco(filename: string, portcos: Portco[], content = ''): string {
-  // Try to match domain from file content (GSC exports include property URL in header)
-  const header = content.slice(0, 2000).toLowerCase()
-  for (const p of portcos) {
+  // Search entire file content for any portco domain
+  const haystack = content.toLowerCase()
+  // Sort by domain length descending so longer/more specific domains match first
+  const sorted = [...portcos].sort((a, b) => b.domain.length - a.domain.length)
+  for (const p of sorted) {
     const domain = p.domain.toLowerCase().replace(/^www\./, '')
-    if (header.includes(domain)) return p.id
+    if (haystack.includes(domain)) return p.id
   }
   // Fall back to filename matching
   const lower = filename.toLowerCase().replace(/[^a-z0-9]/g, '')
-  for (const p of portcos) {
+  for (const p of sorted) {
     const nameLower = p.name.toLowerCase().replace(/[^a-z0-9]/g, '')
     const domainLower = p.domain.toLowerCase().replace(/[^a-z0-9]/g, '').split('.')[0]
     if (lower.includes(nameLower) || lower.includes(domainLower)) return p.id
   }
-  return portcos[0]?.id ?? ''
+  return ''
 }
 
 function parseFile(text: string, source: Source, filename = ''): ParseResult {
@@ -171,7 +173,13 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
         }
         const parsed = parseFile(text, source, entry.file.name)
         setEntries(prev => prev.map(en => en.id === entry.id
-          ? { ...en, source, portcoId, parsed, status: isError(parsed) ? 'error' : 'ready', errorMsg: isError(parsed) ? parsed.error : '' }
+          ? {
+              ...en, source,
+              portcoId: portcoId || portcos[0]?.id || '',
+              parsed,
+              status: isError(parsed) ? 'error' : 'ready',
+              errorMsg: isError(parsed) ? parsed.error : !portcoId ? '⚠ Company auto-detected as fallback — please verify the dropdown' : '',
+            }
           : en
         ))
       }
