@@ -36,10 +36,10 @@ async function getDashboardData(): Promise<PortcoRow[]> {
 
   const [portcosRes, scRes, gaRes, semRes, funnelRes] = await Promise.all([
     supabase.from('portcos').select('*').order('name'),
-    supabase.from('search_console_uploads').select('id,portco_id,period_start,period_end,clicks,impressions,ctr,avg_position,uploaded_at').order('uploaded_at', { ascending: false }),
-    supabase.from('analytics_uploads').select('*').order('uploaded_at', { ascending: false }),
-    supabase.from('semrush_uploads').select('*').order('uploaded_at', { ascending: false }),
-    supabase.from('funnel_uploads').select('*').order('uploaded_at', { ascending: false }),
+    supabase.from('search_console_uploads').select('id,portco_id,period_start,period_end,clicks,impressions,ctr,avg_position,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
+    supabase.from('analytics_uploads').select('id,portco_id,period_start,period_end,sessions,users,new_users,visits,bounce_rate,avg_session_duration,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
+    supabase.from('semrush_uploads').select('id,portco_id,report_date,authority_score,organic_traffic,organic_keywords,paid_traffic,backlinks,referring_domains,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
+    supabase.from('funnel_uploads').select('id,portco_id,period_start,period_end,mqls,sqls,pipeline_arr,avg_deal_value,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
   ])
 
   const portcos: PortcoDB[] = portcosRes.data ?? []
