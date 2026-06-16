@@ -247,20 +247,20 @@ export function parseAnalyticsCSV(text: string): AnalyticsResult | ParseError {
   if (!data.length) return { error: 'No data rows found. Export via: Reports → share icon → Download CSV.' }
 
   const row0 = data[0]
-  const sessionKey = findCol(row0, 'sessions', 'engagedsessions')
+  const sessionKey = findCol(row0, 'sessions')
   const usersKey = findCol(row0, 'totalusers', 'users', 'activeusers')
   const newUsersKey = findCol(row0, 'newusers')
   const visitsKey = findCol(row0, 'screenpageviews', 'pageviews', 'views', 'visits')
-  const bounceKey = findCol(row0, 'bouncerate', 'bounces', 'bounced')
-  const durKey = findCol(row0, 'avgsessionduration', 'averagesessionduration', 'sessionduration', 'timeonsite', 'averageengagementtime', 'engagementtime')
+  const bounceKey = findCol(row0, 'bouncerate', 'bounces', 'bounced', 'engagementrate')
+  const durKey = findCol(row0, 'avgsessionduration', 'averagesessionduration', 'averageengagementtimepersession', 'sessionduration', 'timeonsite', 'averageengagementtime', 'engagementtime')
   const dateKey = findCol(row0, 'date', 'nthday', 'day')
 
   if (!usersKey && !sessionKey) {
     return { error: 'Could not find Users or Sessions columns. Expected Google Analytics 4 export.' }
   }
 
-  // Skip rate columns (e.g. "Engaged sessions per active user") — these are ratios not counts
-  const isRateCol = (key: string | undefined) => key && (key.toLowerCase().includes('per active') || key.toLowerCase().includes('per user') || key.toLowerCase().includes('rate'))
+  // Skip rate/ratio columns that look like sessions but are actually per-user rates
+  const isRateCol = (key: string | undefined) => key && (key.toLowerCase().includes('per active') || key.toLowerCase().includes('per user'))
   const safeSessionKey = isRateCol(sessionKey) ? undefined : sessionKey
 
   let totalSessions = 0, totalUsers = 0, totalNew = 0, totalVisits = 0
@@ -272,7 +272,7 @@ export function parseAnalyticsCSV(text: string): AnalyticsResult | ParseError {
     if (usersKey) totalUsers += toNum(r[usersKey])
     if (newUsersKey) totalNew += toNum(r[newUsersKey])
     if (visitsKey) totalVisits += toNum(r[visitsKey])
-    if (bounceKey) sumBounce += toPct(r[bounceKey])
+    if (bounceKey) sumBounce += toNum(r[bounceKey])
     if (durKey) sumDur += toNum(r[durKey])
     if (dateKey && r[dateKey]) {
       let d = r[dateKey]
