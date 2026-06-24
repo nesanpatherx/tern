@@ -14,6 +14,7 @@ export default function PipedriveRefreshButton() {
       if (data.results) {
         setResults(data.results)
         setState('done')
+        setTimeout(() => window.location.reload(), 1500)
       } else {
         setState('error')
       }
