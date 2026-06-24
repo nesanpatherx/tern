@@ -35,7 +35,7 @@ async function getDashboardData(): Promise<PortcoRow[]> {
   if (!supabase) return []
 
   const [portcosRes, scRes, gaRes, semRes, funnelRes] = await Promise.all([
-    supabase.from('portcos').select('*').order('name'),
+    supabase.from('portcos').select('*').order('sort_order', { ascending: true }).order('name'),
     supabase.from('search_console_uploads').select('id,portco_id,period_start,period_end,clicks,impressions,ctr,avg_position,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
     supabase.from('analytics_uploads').select('id,portco_id,period_start,period_end,sessions,users,new_users,visits,bounce_rate,avg_session_duration,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
     supabase.from('semrush_uploads').select('id,portco_id,report_date,authority_score,organic_traffic,organic_keywords,paid_traffic,backlinks,referring_domains,uploaded_at').order('uploaded_at', { ascending: false }).limit(50),
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
   const totalPipeline = rows.reduce((s, r) => s + (r.funnel?.pipeline_arr ?? 0), 0)
   const totalMQLs = rows.reduce((s, r) => s + (r.funnel?.mqls ?? 0), 0)
   const hasAnyData = rows.some(r => r.sc || r.ga || r.sem || r.funnel)
-  const coverage = Math.round(((withSEM + withSC + withGA + withFunnel) / 44) * 100)
+  const coverage = Math.round(((withSEM + withSC + withGA + withFunnel) / (rows.length * 4)) * 100)
 
   return (
     <div className="min-h-screen" style={{ background: C.offWhite }}>
@@ -245,7 +245,7 @@ export default async function DashboardPage() {
           <StatCard
             label="Data coverage"
             value={`${coverage}%`}
-            sub={`${withSEM + withSC + withGA + withFunnel} / 44 sources`}
+            sub={`${withSEM + withSC + withGA + withFunnel} / ${rows.length * 4} sources`}
             accent={coverage > 0}
           />
           <div className="px-5 py-4 text-xs space-y-2" style={{ background: '#ffffff', border: `0px solid ${C.lightGrey}` }}>

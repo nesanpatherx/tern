@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 async function getPortcos() {
   if (!supabase) return []
-  const { data } = await supabase.from('portcos').select('id, name, domain').order('name')
+  const { data } = await supabase.from('portcos').select('id, name, domain').order('sort_order', { ascending: true }).order('name')
   return data ?? []
 }
 
