@@ -339,6 +339,81 @@ export function parseSemrushCSV(text: string): SemrushResult | ParseError {
   }
 }
 
+// ── Goldvision CRM ────────────────────────────────────────────────────────────
+// Columns: AGE_GROUP, PROJECT_NAME, AC_NAME_1, ACCOUNT_MANAGER,
+//          POTENTIAL_VALUE, PROBABILITY, OP_STAGE, LAST_UPDATED, DAYS_OLD
+
+export function isGoldvisionCSV(text: string): boolean {
+  const first = text.slice(0, 500).toUpperCase()
+  return first.includes('AGE_GROUP') && first.includes('OP_STAGE') && first.includes('POTENTIAL_VALUE')
+}
+
+export function parseGoldvisionCSV(text: string): FunnelResult | ParseError {
+  const clean = stripBom(text)
+  const { data } = Papa.parse<Record<string, string>>(clean, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: h => h.trim(),
+  })
+
+  if (!data.length) return { error: 'No rows found in Goldvision export.' }
+
+  const row0 = data[0]
+  const stageKey = findCol(row0, 'OP_STAGE', 'opstage', 'stage')
+  const valueKey = findCol(row0, 'POTENTIAL_VALUE', 'potentialvalue', 'value')
+  const probKey = findCol(row0, 'PROBABILITY', 'probability', 'prob')
+  const dateKey = findCol(row0, 'LAST_UPDATED', 'lastupdated', 'date')
+
+  if (!stageKey || !valueKey) {
+    return { error: 'Could not find OP_STAGE or POTENTIAL_VALUE columns. Is this a Goldvision opportunities export?' }
+  }
+
+  const CLOSED_STAGES = ['7 - closed', '8 - closed', '9 - closed']
+  const isOpen = (stage: string) => !CLOSED_STAGES.some(s => stage.toLowerCase().startsWith(s))
+  const isWon = (stage: string) => stage.toLowerCase().includes('closed - won')
+
+  let mqls = 0, sqls = 0, pipeline = 0
+  let wonTotal = 0, wonCount = 0
+  const dates: string[] = []
+
+  for (const r of data) {
+    const stage = r[stageKey] ?? ''
+    const value = toNum(r[valueKey])
+    const prob = toNum(r[probKey])
+
+    if (dateKey && r[dateKey]) dates.push(r[dateKey])
+
+    if (isWon(stage)) {
+      if (value > 0) { wonTotal += value; wonCount++ }
+      continue
+    }
+
+    if (!isOpen(stage)) continue
+
+    pipeline += value
+    if (prob < 50) {
+      mqls++
+    } else {
+      sqls++
+    }
+  }
+
+  // Parse dates — GV format is DD/MM/YYYY HH:MM:SS
+  const parsedDates = dates.map(d => {
+    const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : d
+  }).sort()
+
+  return {
+    period_start: parsedDates[0] ?? null,
+    period_end: parsedDates[parsedDates.length - 1] ?? null,
+    mqls,
+    sqls,
+    pipeline_arr: pipeline,
+    avg_deal_value: wonCount > 0 ? wonTotal / wonCount : 0,
+  }
+}
+
 // ── Sales Funnel ──────────────────────────────────────────────────────────────
 // Accepts any CSV with columns: MQLs, SQLs, Pipeline ARR, Avg Deal Value
 // Works with HubSpot/Salesforce/Pipedrive exports or a manual spreadsheet export.
