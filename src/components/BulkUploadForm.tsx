@@ -9,6 +9,7 @@ import {
   parseFunnelCSV,
   parseGoldvisionCSV,
   isGoldvisionCSV,
+  type GoldvisionBU,
   type SearchConsoleResult,
   type AnalyticsResult,
   type SemrushResult,
@@ -83,7 +84,6 @@ function parseFile(text: string, source: Source, filename = ''): ParseResult {
   if (source === 'gsc') return parseSearchConsoleCSV(text, filename)
   if (source === 'ga') return parseAnalyticsCSV(text)
   if (source === 'semrush') return parseSemrushCSV(text)
-  if (isGoldvisionCSV(text)) return parseGoldvisionCSV(text)
   return parseFunnelCSV(text)
 }
 
@@ -166,12 +166,41 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
       const reader = new FileReader()
       reader.onload = e => {
         const text = e.target?.result as string
-        // Skip metadata/filter files from GSC exports
         const lowerName = entry.file.name.toLowerCase()
         if (lowerName === 'filters.csv' || lowerName.startsWith('filter')) {
           setEntries(prev => prev.filter(en => en.id !== entry.id))
           return
         }
+
+        // Goldvision: expand one file into one entry per BU
+        if (isGoldvisionCSV(text)) {
+          const gvResult = parseGoldvisionCSV(text)
+          if ('error' in gvResult) {
+            setEntries(prev => prev.map(en => en.id === entry.id
+              ? { ...en, status: 'error', errorMsg: gvResult.error }
+              : en
+            ))
+            return
+          }
+          const buEntries: FileEntry[] = (gvResult as GoldvisionBU[]).map(({ bu, result }) => {
+            const portco = portcos.find(p =>
+              p.name.toLowerCase().includes(bu.toLowerCase()) ||
+              bu.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
+            )
+            return {
+              id: Math.random().toString(36).slice(2),
+              file: entry.file,
+              source: 'funnel' as Source,
+              portcoId: portco?.id || portcos[0]?.id || '',
+              parsed: result,
+              status: 'ready' as const,
+              errorMsg: !portco ? `⚠ No portco match for "${bu}" — please select manually` : '',
+            }
+          })
+          setEntries(prev => [...prev.filter(en => en.id !== entry.id), ...buEntries])
+          return
+        }
+
         const portcoId = globalPortcoId || detectPortco(entry.file.name, portcos, text)
         const source = detectSource(text)
         if (!source) {

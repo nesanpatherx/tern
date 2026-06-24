@@ -348,7 +348,19 @@ export function isGoldvisionCSV(text: string): boolean {
   return first.includes('AGE_GROUP') && first.includes('OP_STAGE') && first.includes('POTENTIAL_VALUE')
 }
 
-export function parseGoldvisionCSV(text: string): FunnelResult | ParseError {
+// Account manager → BU mapping
+const GV_BU_MAP: Record<string, string> = {
+  'iain tubby': 'CADS Surveys',
+  'mark johnson': 'CADS Surveys',
+  'jamie mccoll': 'CADS Surveys',
+  'simon ruddick': 'CADS Surveys',
+  'matthew pilling': 'Prosper Design',
+}
+const GV_BU_DEFAULT = 'CADS'
+
+export type GoldvisionBU = { bu: string; result: FunnelResult }
+
+export function parseGoldvisionCSV(text: string): GoldvisionBU[] | ParseError {
   const clean = stripBom(text)
   const { data } = Papa.parse<Record<string, string>>(clean, {
     header: true,
@@ -362,56 +374,61 @@ export function parseGoldvisionCSV(text: string): FunnelResult | ParseError {
   const stageKey = findCol(row0, 'OP_STAGE', 'opstage', 'stage')
   const valueKey = findCol(row0, 'POTENTIAL_VALUE', 'potentialvalue', 'value')
   const probKey = findCol(row0, 'PROBABILITY', 'probability', 'prob')
+  const amKey = findCol(row0, 'ACCOUNT_MANAGER', 'accountmanager', 'manager')
   const dateKey = findCol(row0, 'LAST_UPDATED', 'lastupdated', 'date')
 
   if (!stageKey || !valueKey) {
     return { error: 'Could not find OP_STAGE or POTENTIAL_VALUE columns. Is this a Goldvision opportunities export?' }
   }
 
-  const CLOSED_STAGES = ['7 - closed', '8 - closed', '9 - closed']
-  const isOpen = (stage: string) => !CLOSED_STAGES.some(s => stage.toLowerCase().startsWith(s))
+  const isOpen = (stage: string) => !['7 - closed', '8 - closed', '9 - closed'].some(s => stage.toLowerCase().startsWith(s))
   const isWon = (stage: string) => stage.toLowerCase().includes('closed - won')
 
-  let mqls = 0, sqls = 0, pipeline = 0
-  let wonTotal = 0, wonCount = 0
-  const dates: string[] = []
+  type BUAccum = { mqls: number; sqls: number; pipeline: number; wonTotal: number; wonCount: number; dates: string[] }
+  const accum: Record<string, BUAccum> = {}
+  const initBU = (): BUAccum => ({ mqls: 0, sqls: 0, pipeline: 0, wonTotal: 0, wonCount: 0, dates: [] })
 
   for (const r of data) {
     const stage = r[stageKey] ?? ''
     const value = toNum(r[valueKey])
-    const prob = toNum(r[probKey])
+    const prob = probKey ? toNum(r[probKey]) : 0
+    const am = amKey ? (r[amKey] ?? '').toLowerCase().trim() : ''
+    const bu = GV_BU_MAP[am] ?? GV_BU_DEFAULT
 
-    if (dateKey && r[dateKey]) dates.push(r[dateKey])
+    if (!accum[bu]) accum[bu] = initBU()
+    const a = accum[bu]
+
+    if (dateKey && r[dateKey]) a.dates.push(r[dateKey])
 
     if (isWon(stage)) {
-      if (value > 0) { wonTotal += value; wonCount++ }
+      if (value > 0) { a.wonTotal += value; a.wonCount++ }
       continue
     }
-
     if (!isOpen(stage)) continue
 
-    pipeline += value
-    if (prob < 50) {
-      mqls++
-    } else {
-      sqls++
+    a.pipeline += value
+    if (prob < 50) a.mqls++
+    else a.sqls++
+  }
+
+  return Object.entries(accum).map(([bu, a]) => {
+    const parsedDates = a.dates.map(d => {
+      const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+      return m ? `${m[3]}-${m[2]}-${m[1]}` : d
+    }).sort()
+
+    return {
+      bu,
+      result: {
+        period_start: parsedDates[0] ?? null,
+        period_end: parsedDates[parsedDates.length - 1] ?? null,
+        mqls: a.mqls,
+        sqls: a.sqls,
+        pipeline_arr: a.pipeline,
+        avg_deal_value: a.wonCount > 0 ? a.wonTotal / a.wonCount : 0,
+      },
     }
-  }
-
-  // Parse dates — GV format is DD/MM/YYYY HH:MM:SS
-  const parsedDates = dates.map(d => {
-    const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})/)
-    return m ? `${m[3]}-${m[2]}-${m[1]}` : d
-  }).sort()
-
-  return {
-    period_start: parsedDates[0] ?? null,
-    period_end: parsedDates[parsedDates.length - 1] ?? null,
-    mqls,
-    sqls,
-    pipeline_arr: pipeline,
-    avg_deal_value: wonCount > 0 ? wonTotal / wonCount : 0,
-  }
+  })
 }
 
 // ── Sales Funnel ──────────────────────────────────────────────────────────────
