@@ -4,10 +4,10 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 
 const PIPEDRIVE_PORTCOS = [
-  { name: 'SchoolScreener', domain: 'schoolscreener.com' },
-  { name: 'Mind Of My Own', domain: 'mindofmyown.com' },
-  { name: 'CCube Solutions', domain: 'ccubesolutions.com' },
-  { name: 'Charity Log', domain: 'charitylog.co.uk' },
+  { name: 'SchoolScreener', domain: 'schoolscreener.com', prefixes: ['schoolscreener'] },
+  { name: 'Mind Of My Own', domain: 'mindofmyown.com', prefixes: ['momo'] },
+  { name: 'CCube Solutions', domain: 'ccubesolutions.com', prefixes: ['ccube'] },
+  { name: 'Charity Log', domain: 'charitylog.co.uk', prefixes: ['charitylog'] },
 ]
 
 export async function POST() {
@@ -30,21 +30,18 @@ export async function POST() {
     if (!portco) { results.push({ name: pd.name, status: 'not found in DB' }); continue }
 
     try {
-      // Search for organisation by name
-      const orgRes = await fetch(
-        `https://api.pipedrive.com/v1/organizations/search?term=${encodeURIComponent(pd.name)}&api_token=${apiKey}`
+      // Fetch all deals and filter by title prefix
+      const dealsRes = await fetch(
+        `https://api.pipedrive.com/v1/deals?status=all&limit=500&api_token=${apiKey}`
       )
-      const orgData = await orgRes.json()
-      const org = orgData?.data?.items?.[0]?.item
-
-      // Fetch all deals for this org (or all deals if no org found)
-      const dealsUrl = org
-        ? `https://api.pipedrive.com/v1/organizations/${org.id}/deals?status=all&limit=500&api_token=${apiKey}`
-        : `https://api.pipedrive.com/v1/deals?status=all&limit=500&api_token=${apiKey}`
-
-      const dealsRes = await fetch(dealsUrl)
       const dealsData = await dealsRes.json()
-      const deals: Record<string, unknown>[] = dealsData?.data ?? []
+      const allDeals: Record<string, unknown>[] = dealsData?.data ?? []
+
+      // Filter deals matching this portco's prefixes
+      const deals = allDeals.filter((d: Record<string, unknown>) => {
+        const title = String(d.title ?? '').toLowerCase()
+        return pd.prefixes.some(p => title.startsWith(p))
+      })
 
       // Calculate metrics
       const openDeals = deals.filter((d: Record<string, unknown>) => d.status === 'open')
