@@ -183,10 +183,12 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
             return
           }
           const buEntries: FileEntry[] = (gvResult as GoldvisionBU[]).map(({ bu, result }) => {
-            const portco = portcos.find(p =>
-              p.name.toLowerCase().includes(bu.toLowerCase()) ||
-              bu.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
-            )
+            const buLower = bu.toLowerCase()
+            // Exact match first, then partial — avoids "CADS" matching "CADS Surveys"
+            const portco =
+              portcos.find(p => p.name.toLowerCase() === buLower) ||
+              portcos.find(p => p.name.toLowerCase().includes(buLower) && p.name.toLowerCase().length - buLower.length < 5) ||
+              portcos.find(p => buLower.includes(p.name.toLowerCase()))
             return {
               id: Math.random().toString(36).slice(2),
               file: entry.file,
@@ -515,11 +517,11 @@ export default function BulkUploadForm({ portcos }: { portcos: Portco[] }) {
             {saving ? 'Saving…' : `Save ${readyCount} file${readyCount !== 1 ? 's' : ''} to dashboard`}
           </button>
 
-          {savedCount > 0 && (
+          {savedCount > 0 && readyCount === 0 && (
             <a
               href="/"
-              className="text-sm font-semibold"
-              style={{ color: '#eb5c32' }}
+              className="px-4 py-2 text-sm font-semibold"
+              style={{ background: '#eb5c32', color: '#ffffff' }}
             >
               View dashboard →
             </a>
