@@ -3,8 +3,6 @@ export const revalidate = 0
 
 import { unstable_noStore as noStore } from 'next/cache'
 import Link from 'next/link'
-import SemrushRefreshButton from '@/components/SemrushRefreshButton'
-import GA4RefreshButton from '@/components/GA4RefreshButton'
 import PipedriveRefreshButton from '@/components/PipedriveRefreshButton'
 import {
   supabase,
@@ -84,6 +82,18 @@ const C = {
   navy: '#1c2b3a',
   slateBlue: '#4a6580',
   paleSlate: '#c8d8e8',
+}
+
+function V2Button({ label }: { label: string }) {
+  return (
+    <button
+      disabled
+      className="flex items-center px-3 py-1.5 text-xs font-semibold cursor-not-allowed opacity-30"
+      style={{ background: '#1a1a18', color: '#ffffff', border: '1px solid transparent' }}
+    >
+      {label}
+    </button>
+  )
 }
 
 function Dash() {
@@ -181,6 +191,16 @@ export default async function DashboardPage() {
   const hasAnyData = rows.some(r => r.sc || r.ga || r.sem || r.funnel)
   const coverage = Math.round(((withSEM + withSC + withGA + withFunnel) / (rows.length * 4)) * 100)
 
+  const allUploadDates = rows.flatMap(r => [
+    r.sc?.uploaded_at, r.ga?.uploaded_at, r.sem?.uploaded_at, r.funnel?.uploaded_at,
+  ]).filter(Boolean) as string[]
+  const lastUpdated = allUploadDates.length
+    ? new Date(Math.max(...allUploadDates.map(d => new Date(d).getTime())))
+    : null
+  const lastUpdatedStr = lastUpdated
+    ? lastUpdated.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+
   return (
     <div className="min-h-screen" style={{ background: C.offWhite }}>
       {/* Header */}
@@ -199,14 +219,18 @@ export default async function DashboardPage() {
             style={{ color: C.darkGrey, borderLeft: `1px solid ${C.charcoal}`, paddingLeft: '12px' }}
           >
             Portfolio dashboard
+            {lastUpdatedStr && (
+              <span style={{ color: C.charcoal, marginLeft: '8px' }}>· Updated {lastUpdatedStr}</span>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs hidden sm:inline" style={{ color: C.darkGrey }}>
             {rows.length} companies
           </span>
-          <SemrushRefreshButton />
-          <GA4RefreshButton />
+          <V2Button label="Refresh SEMrush" />
+          <V2Button label="Refresh GA4" />
+          <V2Button label="Refresh HubSpot" />
           <PipedriveRefreshButton />
           <Link
             href="/bulk-upload"
