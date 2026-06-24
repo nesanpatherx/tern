@@ -428,24 +428,24 @@ export default async function DashboardPage() {
 
                         {/* SEMrush */}
                         <Cell divider className={authorityColor(sem?.authority_score)}>
-                          {sem ? (sem.authority_score ?? <Dash />) : <Dash />}
+                          {sem ? (sem.authority_score ?? 0) : <Dash />}
                         </Cell>
-                        <Cell style={{ color: C.charcoal }}>{sem ? fmtNum(sem.organic_traffic) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{sem ? fmtNum(sem.organic_keywords) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{sem ? fmtNum(sem.backlinks) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sem ? (sem.organic_traffic ? fmtNum(sem.organic_traffic) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sem ? (sem.organic_keywords ? fmtNum(sem.organic_keywords) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sem ? (sem.backlinks ? fmtNum(sem.backlinks) : 0) : <Dash />}</Cell>
 
                         {/* Search Console */}
-                        <Cell divider style={{ color: C.charcoal }}>{sc ? fmtNum(sc.clicks) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{sc ? fmtNum(sc.impressions) : <Dash />}</Cell>
-                        <Cell className={ctrColor(sc?.ctr)}>{sc ? fmtPct(sc.ctr) : <Dash />}</Cell>
-                        <Cell className={positionColor(sc?.avg_position)}>{sc ? fmtPos(sc.avg_position) : <Dash />}</Cell>
+                        <Cell divider style={{ color: C.charcoal }}>{sc ? (sc.clicks ? fmtNum(sc.clicks) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{sc ? (sc.impressions ? fmtNum(sc.impressions) : 0) : <Dash />}</Cell>
+                        <Cell className={ctrColor(sc?.ctr)}>{sc ? (sc.ctr ? fmtPct(sc.ctr) : 0) : <Dash />}</Cell>
+                        <Cell className={positionColor(sc?.avg_position)}>{sc ? (sc.avg_position ? fmtPos(sc.avg_position) : 0) : <Dash />}</Cell>
 
                         {/* GA4 */}
-                        <Cell divider style={{ color: C.charcoal }}>{ga ? fmtNum(ga.users) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{ga ? fmtNum(ga.sessions) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{ga ? fmtNum(ga.visits) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{ga ? fmtDuration(ga.avg_session_duration) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{ga ? fmtPct(ga.bounce_rate) : <Dash />}</Cell>
+                        <Cell divider style={{ color: C.charcoal }}>{ga ? (ga.users ? fmtNum(ga.users) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? (ga.sessions ? fmtNum(ga.sessions) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? (ga.visits ? fmtNum(ga.visits) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? (ga.avg_session_duration ? fmtDuration(ga.avg_session_duration) : 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{ga ? (ga.bounce_rate ? fmtPct(ga.bounce_rate) : 0) : <Dash />}</Cell>
 
                         {/* Funnel */}
                         <Cell divider style={{ color: C.charcoal }}>{funnel ? (funnel.mqls ?? 0) : <Dash />}</Cell>
