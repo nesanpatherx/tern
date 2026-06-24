@@ -437,10 +437,10 @@ export default async function DashboardPage() {
                         <Cell style={{ color: C.charcoal }}>{ga ? fmtPct(ga.bounce_rate) : <Dash />}</Cell>
 
                         {/* Funnel */}
-                        <Cell divider style={{ color: C.charcoal }}>{funnel ? fmtNum(funnel.mqls) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{funnel ? fmtNum(funnel.sqls) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{funnel ? fmtCurrency(funnel.pipeline_arr) : <Dash />}</Cell>
-                        <Cell style={{ color: C.charcoal }}>{funnel ? fmtCurrency(funnel.avg_deal_value) : <Dash />}</Cell>
+                        <Cell divider style={{ color: C.charcoal }}>{funnel ? (funnel.mqls ?? 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{funnel ? (funnel.sqls ?? 0) : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{funnel ? (funnel.pipeline_arr ? fmtCurrency(funnel.pipeline_arr) : '£0') : <Dash />}</Cell>
+                        <Cell style={{ color: C.charcoal }}>{funnel ? (funnel.avg_deal_value ? fmtCurrency(funnel.avg_deal_value) : '£0') : <Dash />}</Cell>
                       </tr>
                     )
                   })
