@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
+import { unstable_noStore as noStore } from 'next/cache'
 import Link from 'next/link'
 import SemrushRefreshButton from '@/components/SemrushRefreshButton'
 import GA4RefreshButton from '@/components/GA4RefreshButton'
@@ -33,6 +35,7 @@ type PortcoRow = {
 }
 
 async function getDashboardData(): Promise<PortcoRow[]> {
+  noStore()
   if (!supabase) return []
 
   const [portcosRes, scRes, gaRes, semRes, funnelRes] = await Promise.all([
