@@ -8,6 +8,10 @@ import {
   parseAnalyticsCSV,
   parseSemrushCSV,
   parseFunnelCSV,
+  parseHubSpotCSV,
+  isHubSpotCSV,
+  parseGoldvisionCSV,
+  isGoldvisionCSV,
   type SearchConsoleResult,
   type AnalyticsResult,
   type SemrushResult,
@@ -95,6 +99,11 @@ export default function UploadForm() {
         if (source === 'gsc') result = parseSearchConsoleCSV(text)
         else if (source === 'ga') result = parseAnalyticsCSV(text)
         else if (source === 'semrush') result = parseSemrushCSV(text)
+        else if (isHubSpotCSV(text)) result = parseHubSpotCSV(text)
+        else if (isGoldvisionCSV(text)) {
+          const gv = parseGoldvisionCSV(text)
+          result = Array.isArray(gv) ? gv[0].result : gv
+        }
         else result = parseFunnelCSV(text)
         setParsed(result)
         setStatus(isError(result) ? 'error' : 'idle')
