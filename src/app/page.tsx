@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import SemrushRefreshButton from '@/components/SemrushRefreshButton'
 import GA4RefreshButton from '@/components/GA4RefreshButton'
+import PipedriveRefreshButton from '@/components/PipedriveRefreshButton'
 import {
   supabase,
   type PortcoDB,
@@ -195,6 +196,7 @@ export default async function DashboardPage() {
           </span>
           <SemrushRefreshButton />
           <GA4RefreshButton />
+          <PipedriveRefreshButton />
           <Link
             href="/bulk-upload"
             className="px-4 py-1.5 text-xs font-semibold transition-colors"
