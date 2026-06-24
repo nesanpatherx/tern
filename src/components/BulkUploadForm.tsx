@@ -9,6 +9,8 @@ import {
   parseFunnelCSV,
   parseGoldvisionCSV,
   isGoldvisionCSV,
+  parseHubSpotCSV,
+  isHubSpotCSV,
   type GoldvisionBU,
   type SearchConsoleResult,
   type AnalyticsResult,
@@ -53,6 +55,7 @@ function isError(r: ParseResult | null): r is ParseError {
 
 function detectSource(text: string): Source | null {
   if (isGoldvisionCSV(text)) return 'funnel'
+  if (isHubSpotCSV(text)) return 'funnel'
   const lower = text.slice(0, 2000).toLowerCase()
   if (lower.includes('authority score') || lower.includes('organic search traffic') || lower.includes('semrush')) return 'semrush'
   if (lower.includes('clicks') && lower.includes('impressions') && lower.includes('position')) return 'gsc'
@@ -84,6 +87,7 @@ function parseFile(text: string, source: Source, filename = ''): ParseResult {
   if (source === 'gsc') return parseSearchConsoleCSV(text, filename)
   if (source === 'ga') return parseAnalyticsCSV(text)
   if (source === 'semrush') return parseSemrushCSV(text)
+  if (isHubSpotCSV(text)) return parseHubSpotCSV(text)
   return parseFunnelCSV(text)
 }
 

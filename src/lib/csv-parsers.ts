@@ -431,6 +431,69 @@ export function parseGoldvisionCSV(text: string): GoldvisionBU[] | ParseError {
   })
 }
 
+// ── HubSpot CRM ───────────────────────────────────────────────────────────────
+// Columns: Record ID, Deal Name, Deal Stage, Close Date, Deal owner, Amount
+
+export function isHubSpotCSV(text: string): boolean {
+  const first = text.slice(0, 300).toLowerCase()
+  return first.includes('record id') && first.includes('deal stage') && first.includes('deal owner')
+}
+
+const HS_MQL_STAGES = ['qualification', 'meeting / demonstration', 'meeting/demonstration', 're-engage', 'rfp/rfi']
+const HS_SQL_STAGES = ['proposal  created', 'proposal created', 'preferred vendor', 'renewal discussion scheduled', 'billing started']
+
+export function parseHubSpotCSV(text: string): FunnelResult | ParseError {
+  const clean = stripBom(text)
+  const { data } = Papa.parse<Record<string, string>>(clean, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: h => h.trim(),
+  })
+
+  if (!data.length) return { error: 'No rows found in HubSpot export.' }
+
+  const row0 = data[0]
+  const stageKey = findCol(row0, 'Deal Stage', 'dealstage', 'stage')
+  const amountKey = findCol(row0, 'Amount', 'amount', 'value')
+  const dateKey = findCol(row0, 'Close Date', 'closedate', 'date')
+
+  if (!stageKey) return { error: 'Could not find Deal Stage column. Is this a HubSpot deals export?' }
+
+  let mqls = 0, sqls = 0, pipeline = 0, wonTotal = 0, wonCount = 0
+  const dates: string[] = []
+
+  for (const r of data) {
+    const stage = (r[stageKey] ?? '').toLowerCase().trim()
+    const amount = amountKey ? toNum(r[amountKey]) : 0
+    if (dateKey && r[dateKey]) dates.push(r[dateKey])
+
+    if (stage === 'closed won') {
+      if (amount > 0) { wonTotal += amount; wonCount++ }
+      continue
+    }
+    if (stage === 'closed lost') continue
+
+    // Open deal
+    pipeline += amount
+    if (HS_MQL_STAGES.some(s => stage.includes(s))) mqls++
+    else if (HS_SQL_STAGES.some(s => stage.includes(s))) sqls++
+    else mqls++ // unknown open stage → treat as MQL
+  }
+
+  const parsedDates = dates
+    .map(d => { const m = d.match(/(\d{4}-\d{2}-\d{2})/); return m ? m[1] : '' })
+    .filter(Boolean).sort()
+
+  return {
+    period_start: parsedDates[0] ?? null,
+    period_end: parsedDates[parsedDates.length - 1] ?? null,
+    mqls,
+    sqls,
+    pipeline_arr: pipeline,
+    avg_deal_value: wonCount > 0 ? wonTotal / wonCount : 0,
+  }
+}
+
 // ── Sales Funnel ──────────────────────────────────────────────────────────────
 // Accepts any CSV with columns: MQLs, SQLs, Pipeline ARR, Avg Deal Value
 // Works with HubSpot/Salesforce/Pipedrive exports or a manual spreadsheet export.
