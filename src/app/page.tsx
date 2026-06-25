@@ -298,7 +298,7 @@ export default async function DashboardPage() {
 
         {/* Grouped tables */}
         {(() => {
-          const GROUP_ORDER = ['Noveva', 'Forma', 'Standalone', 'Other']
+          const GROUP_ORDER = ['Noveva', 'Forma Innovations', 'Standalone', 'Other']
           const grouped = GROUP_ORDER.map(g => ({
             group: g,
             rows: rows.filter(r => (r.portco.portco_group ?? 'Other') === g),
