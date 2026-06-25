@@ -11,6 +11,7 @@ export type PortcoDB = {
   name: string
   domain: string
   created_at: string
+  portco_group?: string
 }
 
 export type SCUpload = {
