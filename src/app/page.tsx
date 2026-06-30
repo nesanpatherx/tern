@@ -4,6 +4,7 @@ export const revalidate = 0
 import { unstable_noStore as noStore } from 'next/cache'
 import Link from 'next/link'
 import PipedriveRefreshButton from '@/components/PipedriveRefreshButton'
+import SemrushRefreshButton from '@/components/SemrushRefreshButton'
 import GroupedTables from '@/components/GroupedTables'
 import MetricFAQ from '@/components/MetricFAQ'
 import {
@@ -230,7 +231,7 @@ export default async function DashboardPage() {
           <span className="text-xs hidden sm:inline" style={{ color: C.darkGrey }}>
             {rows.length} companies
           </span>
-          <V2Button label="Refresh SEMrush" />
+          <SemrushRefreshButton />
           <V2Button label="Refresh GA4" />
           <V2Button label="Refresh HubSpot" />
           <PipedriveRefreshButton />
