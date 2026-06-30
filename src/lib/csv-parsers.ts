@@ -248,9 +248,9 @@ export function parseAnalyticsCSV(text: string): AnalyticsResult | ParseError {
 
   const row0 = data[0]
   const sessionKey = findCol(row0, 'sessions')
-  const usersKey = findCol(row0, 'totalusers', 'users', 'activeusers')
-  const newUsersKey = findCol(row0, 'newusers')
-  const visitsKey = findCol(row0, 'screenpageviews', 'pageviews', 'views', 'visits')
+  const usersKey = findCol(row0, 'activeusers', 'totalusers', 'users', 'active users', 'total users')
+  const newUsersKey = findCol(row0, 'newusers', 'new users')
+  const visitsKey = findCol(row0, 'views', 'screenpageviews', 'screenpageviews', 'pageviews', 'screen page views', 'visits')
   const bounceKey = findCol(row0, 'bouncerate', 'bounces', 'bounced', 'engagementrate')
   const durKey = findCol(row0, 'avgsessionduration', 'averagesessionduration', 'averageengagementtimepersession', 'sessionduration', 'timeonsite', 'averageengagementtime', 'engagementtime')
   const dateKey = findCol(row0, 'date', 'nthday', 'day')
