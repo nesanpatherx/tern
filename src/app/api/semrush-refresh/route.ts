@@ -23,7 +23,6 @@ async function fetchDomainOverview(domain: string): Promise<DomainOverview | nul
     headers.forEach((h, i) => { row[h.trim()] = values[i]?.trim() ?? '0' })
     const traffic = parseInt(row['Organic Traffic'] ?? row['Ot'] ?? '0') || 0
     const keywords = parseInt(row['Organic Keywords'] ?? row['Or'] ?? '0') || 0
-    if (traffic === 0) return null
     return {
       organic_keywords: keywords,
       organic_traffic: traffic,
@@ -47,8 +46,10 @@ async function fetchDomainOverview(domain: string): Promise<DomainOverview | nul
     if (!ukData && !usData) return null
     if (!ukData) return usData
     if (!usData) return ukData
-    // Return whichever has higher organic traffic
-    return ukData.organic_traffic >= usData.organic_traffic ? ukData : usData
+    // Return whichever has higher organic traffic, break ties with keywords
+    if (ukData.organic_traffic !== usData.organic_traffic)
+      return ukData.organic_traffic > usData.organic_traffic ? ukData : usData
+    return ukData.organic_keywords >= usData.organic_keywords ? ukData : usData
   } catch {
     return null
   }
