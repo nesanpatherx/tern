@@ -140,7 +140,13 @@ function CompanyRow({ portco, sc, ga, sem, funnel }: PortcoRow) {
         </div>
       </td>
       <Cell divider className={authorityColor(sem?.authority_score)}>{sem ? (sem.authority_score ?? 0) : <Dash />}</Cell>
-      <Cell style={{ color: C.charcoal }}>{sem ? (sem.organic_traffic ? fmtNum(sem.organic_traffic) : 0) : <Dash />}</Cell>
+      <Cell style={{ color: C.charcoal }}>
+        {sem && sem.organic_traffic
+          ? fmtNum(sem.organic_traffic)
+          : sc?.clicks
+          ? <span>{fmtNum(sc.clicks)}<sup style={{ fontSize: '8px', color: C.darkGrey, marginLeft: '2px' }}>GSC</sup></span>
+          : sem ? 0 : <Dash />}
+      </Cell>
       <Cell style={{ color: C.charcoal }}>{sem ? (sem.organic_keywords ? fmtNum(sem.organic_keywords) : 0) : <Dash />}</Cell>
       <Cell style={{ color: C.charcoal }}>{sem ? (sem.backlinks ? fmtNum(sem.backlinks) : 0) : <Dash />}</Cell>
       <Cell divider style={{ color: C.charcoal }}>{sc ? (sc.clicks ? fmtNum(sc.clicks) : 0) : <Dash />}</Cell>
