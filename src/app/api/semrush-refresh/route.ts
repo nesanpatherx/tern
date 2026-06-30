@@ -14,27 +14,36 @@ type DomainOverview = {
 }
 
 async function fetchDomainOverview(domain: string): Promise<DomainOverview | null> {
-  try {
-    const url = `https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=${DB}`
-    const res = await fetch(url, { next: { revalidate: 0 } })
-    const text = await res.text()
-
+  const parse = (text: string): DomainOverview | null => {
     const lines = text.trim().split('\n')
     if (lines.length < 2 || text.includes('ERROR')) return null
-
     const headers = lines[0].split(';')
     const values = lines[1].split(';')
     const row: Record<string, string> = {}
     headers.forEach((h, i) => { row[h.trim()] = values[i]?.trim() ?? '0' })
-
+    const traffic = parseInt(row['Organic Traffic'] ?? row['Ot'] ?? '0') || 0
+    const keywords = parseInt(row['Organic Keywords'] ?? row['Or'] ?? '0') || 0
+    if (traffic === 0 && keywords === 0) return null
     return {
-      organic_keywords: parseInt(row['Organic Keywords'] ?? row['Or'] ?? '0') || 0,
-      organic_traffic: parseInt(row['Organic Traffic'] ?? row['Ot'] ?? '0') || 0,
+      organic_keywords: keywords,
+      organic_traffic: traffic,
       paid_traffic: parseInt(row['Adwords Traffic'] ?? row['At'] ?? '0') || 0,
       authority_score: 0,
       backlinks: 0,
       referring_domains: 0,
     }
+  }
+
+  try {
+    // Try UK database first, fall back to US if no data
+    const ukRes = await fetch(`https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=uk`, { next: { revalidate: 0 } })
+    const ukText = await ukRes.text()
+    const ukData = parse(ukText)
+    if (ukData) return ukData
+
+    const usRes = await fetch(`https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=us`, { next: { revalidate: 0 } })
+    const usText = await usRes.text()
+    return parse(usText)
   } catch {
     return null
   }
@@ -109,6 +118,7 @@ export async function POST() {
         referring_domains: backlinks?.referring_domains ?? 0,
       }
 
+      await sb.from('semrush_uploads').delete().eq('portco_id', portco.id)
       const { error } = await sb.from('semrush_uploads').insert(payload)
 
       results.push({
