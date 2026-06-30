@@ -1,41 +1,20 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const semrushKey = process.env.SEMRUSH_API_KEY
-  const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key = process.env.SEMRUSH_API_KEY
+  if (!key) return NextResponse.json({ error: 'no key' })
 
-  // Check env vars
-  const envCheck = {
-    SEMRUSH_API_KEY: semrushKey ? `set (${semrushKey.slice(0, 6)}...)` : 'MISSING',
-    SUPABASE_URL: sbUrl ? 'set' : 'MISSING',
-    SUPABASE_ANON_KEY: sbKey ? 'set' : 'MISSING',
-  }
+  const domain = 'schoolscreener.com'
 
-  // Check portcos
-  let portcos: unknown[] = []
-  let portcoError = null
-  if (sbUrl && sbKey) {
-    const sb = createClient(sbUrl, sbKey)
-    const { data, error } = await sb.from('portcos').select('id, name, domain')
-    portcos = data ?? []
-    portcoError = error?.message ?? null
-  }
+  const [resUk, resUs, resBl] = await Promise.all([
+    fetch(`https://api.semrush.com/?type=domain_ranks&key=${key}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=uk`),
+    fetch(`https://api.semrush.com/?type=domain_ranks&key=${key}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=us`),
+    fetch(`https://api.semrush.com/analytics/v1/?key=${key}&type=backlinks_overview&target=${domain}&target_type=root_domain&export_columns=ascore,total,domains_num`),
+  ])
 
-  // Test one SEMrush call
-  let semrushTest = null
-  if (semrushKey && portcos.length > 0) {
-    const domain = (portcos[0] as { domain: string }).domain
-    try {
-      const url = `https://api.semrush.com/?type=domain_ranks&key=${semrushKey}&export_columns=Dn,Rk,Or,Ot,Oc&domain=${domain}&database=uk`
-      const res = await fetch(url)
-      const text = await res.text()
-      semrushTest = { domain, status: res.status, response: text.slice(0, 300) }
-    } catch (e) {
-      semrushTest = { domain, error: String(e) }
-    }
-  }
+  const [uk, us, backlinks] = await Promise.all([resUk.text(), resUs.text(), resBl.text()])
 
-  return NextResponse.json({ envCheck, portcoCount: portcos.length, portcoError, semrushTest })
+  return NextResponse.json({ domain, uk, us, backlinks })
 }
