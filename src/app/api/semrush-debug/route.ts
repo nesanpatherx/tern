@@ -6,7 +6,7 @@ export async function GET() {
   const key = process.env.SEMRUSH_API_KEY
   if (!key) return NextResponse.json({ error: 'no key' })
 
-  const domain = 'cadsonline.co.uk'
+  const domain = 'cadsonline.com'
 
   const [resUk, resUs, resBl] = await Promise.all([
     fetch(`https://api.semrush.com/?type=domain_ranks&key=${key}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=uk`),
