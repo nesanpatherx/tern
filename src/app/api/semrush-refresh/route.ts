@@ -23,7 +23,7 @@ async function fetchDomainOverview(domain: string): Promise<DomainOverview | nul
     headers.forEach((h, i) => { row[h.trim()] = values[i]?.trim() ?? '0' })
     const traffic = parseInt(row['Organic Traffic'] ?? row['Ot'] ?? '0') || 0
     const keywords = parseInt(row['Organic Keywords'] ?? row['Or'] ?? '0') || 0
-    if (traffic === 0 && keywords === 0) return null
+    if (traffic === 0) return null
     return {
       organic_keywords: keywords,
       organic_traffic: traffic,
@@ -35,15 +35,20 @@ async function fetchDomainOverview(domain: string): Promise<DomainOverview | nul
   }
 
   try {
-    // Try UK database first, fall back to US if no data
-    const ukRes = await fetch(`https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=uk`, { next: { revalidate: 0 } })
-    const ukText = await ukRes.text()
+    // Fetch both databases in parallel, pick whichever has more traffic
+    const [ukRes, usRes] = await Promise.all([
+      fetch(`https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=uk`, { next: { revalidate: 0 } }),
+      fetch(`https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=us`, { next: { revalidate: 0 } }),
+    ])
+    const [ukText, usText] = await Promise.all([ukRes.text(), usRes.text()])
     const ukData = parse(ukText)
-    if (ukData) return ukData
+    const usData = parse(usText)
 
-    const usRes = await fetch(`https://api.semrush.com/?type=domain_ranks&key=${SEMRUSH_KEY}&export_columns=Dn,Rk,Or,Ot,Oc,Ad,At,Ac&domain=${domain}&database=us`, { next: { revalidate: 0 } })
-    const usText = await usRes.text()
-    return parse(usText)
+    if (!ukData && !usData) return null
+    if (!ukData) return usData
+    if (!usData) return ukData
+    // Return whichever has higher organic traffic
+    return ukData.organic_traffic >= usData.organic_traffic ? ukData : usData
   } catch {
     return null
   }
